@@ -1,0 +1,136 @@
+﻿@page "/demo/ocr"
+@using AzureAIDemo.Helpers
+
+@inject OCRService OcrApi
+<h3>OCR Api Demo</h3>
+
+<p>Select image</p>
+<button class="btn btn-primary" @onclick="TakePhoto">Select File</button>
+<div class="row mt-2">
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(ImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@ImageSrc" alt="image" />
+        }
+    </div>
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(CVImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@CVImageSrc" alt="image" />
+        }
+    </div>
+</div>
+@if (SelectedImage != null)
+{
+    <div class="row mt-2 mb-1">
+        <div class="col col-12">
+            <button class="btn btn-success" @onclick="Analyze">Read Text</button>
+
+        </div>
+    </div>
+
+}
+
+
+@if (Results != null)
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Line</th>
+                <th>Text</th>
+                <th>Language</th>
+                <th>Box</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var No = 1;
+            }
+            @foreach (var result in Results)
+            {			@foreach (var line in result.Lines)
+                {
+
+                    var LineCount = 1;
+
+
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>@(LineCount++)</td>
+                        <td>@line.Text</td>
+                        <td>@line.Language</td>
+                        <td>@(string.Join(",", line.BoundingBox.Select(x=>x.ToString()).ToArray()))</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+
+@code {
+    byte[] SelectedImage;
+
+    string ImageSrc;
+    string CVImageSrc;
+    List<Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models.ReadResult> Results;
+    public async Task TakePhoto()
+    {
+
+        var status = await Permissions.RequestAsync<Permissions.Media>();
+        if (status == PermissionStatus.Granted)
+            if (MediaPicker.Default.IsCaptureSupported)
+            {
+                FileResult photo = await MediaPicker.Default.PickPhotoAsync();
+
+                if (photo != null)
+                {
+                    // save the file into local storage
+                    string localFilePath = Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+
+                    using Stream sourceStream = await photo.OpenReadAsync();
+
+                    SelectedImage = StreamHelper.StreamToBytes(sourceStream);
+
+                    ImageSrc = ImageHelper.ConvertToBase64(SelectedImage);
+                }
+            }
+
+
+
+    }
+
+    async Task Analyze()
+    {
+        var result = await OcrApi.ReadImageBytes(SelectedImage);
+        var rects = new List<System.Drawing.PointF[]>();
+        var descs = new List<string>();
+        Results = result.ToList();
+        var No = 1;
+        foreach (var item in result)
+        {
+            var lineCnt = 1;
+            foreach (var line in item.Lines)
+            {
+                var poly = new List<System.Drawing.PointF>();
+                if (line.BoundingBox != null && line.BoundingBox.Count > 0)
+                {
+                    for(var i=0;i<line.BoundingBox.Count-1;i+=2)
+                    {
+                        poly.Add(new System.Drawing.PointF( (float)line.BoundingBox[i],(float)line.BoundingBox[i+1] ));
+                    }
+                    rects.Add(poly.ToArray());
+                    descs.Add($"No.{No}, Line.{lineCnt}");
+                    lineCnt++;
+                }
+            }
+            No++;
+        }
+        var imgBytes = ImageHelper.DrawPolygon(rects,descs,SelectedImage,$"detected: {result.Count}");
+    
+        
+        CVImageSrc = ImageHelper.ConvertToBase64(imgBytes);
+    }
+
+}

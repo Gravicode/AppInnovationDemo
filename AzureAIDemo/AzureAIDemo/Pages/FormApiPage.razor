@@ -1,0 +1,239 @@
+﻿@page "/demo/form"
+@using Azure.AI.FormRecognizer.DocumentAnalysis
+@using AzureAIDemo.Helpers
+
+@inject FormRecognizersService FormApi
+<h3>Form Reader Api Demo</h3>
+
+<p>Select document</p>
+<button class="btn btn-primary" @onclick="TakeFile">Select File</button>
+<div class="row mt-2">
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(FileSrc))
+            if (FileType == "image")
+            {
+                <img style="max-width: 90%;height: auto;" src="@FileSrc" alt="image" />
+            }
+            else if (FileType == "pdf")
+            {
+                <embed src="@FileSrc" type="application/pdf" width="500">
+            }
+    </div>
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(CVImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@CVImageSrc" alt="image" />
+        }
+    </div>
+</div>
+@if (SelectedFile != null)
+{
+    <div class="row mt-2">
+        <div class="col col-12">
+            <button class="btn btn-success" @onclick="Analyze">Analyze Doc</button>
+
+        </div>
+    </div>
+
+}
+
+
+@if (Result != null)
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Object</th>
+                <th>Content</th>
+                <th>Position</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var No = 1;
+            }
+            @foreach (DocumentKeyValuePair kvp in Result.KeyValuePairs)
+            {
+                if (kvp.Value == null)
+                {
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>Key-Value without Value</td>
+                        <td>@($"{kvp.Key.Content}")</td>
+                        <td>-</td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>Key-Value without Value</td>
+                        <td>@($"'{kvp.Key.Content}' and '{kvp.Value.Content}'")</td>
+                        <td>-</td>
+                    </tr>
+                }
+            }
+            @{
+                No = 1;
+            }
+            @foreach (DocumentPage page in Result.Pages)
+            {
+
+                for (int i = 0; i < page.Lines.Count; i++)
+                {
+                    DocumentLine line = page.Lines[i];
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>Line</td>
+                        <td>@($"{line.Content}")</td>
+                        <td>@($"Upper left => X: {line.BoundingPolygon[0].X}, Y= {line.BoundingPolygon[0].Y}, Upper right => X: {line.BoundingPolygon[1].X}, Y= {line.BoundingPolygon[1].Y}, Lower right => X: {line.BoundingPolygon[2].X}, Y= {line.BoundingPolygon[2].Y}, Lower left => X: {line.BoundingPolygon[3].X}, Y= {line.BoundingPolygon[3].Y}")</td>
+                    </tr>
+                }
+
+                for (int i = 0; i < page.SelectionMarks.Count; i++)
+                {
+                    DocumentSelectionMark selectionMark = page.SelectionMarks[i];
+
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>Selection Mark</td>
+                        <td>@($"{selectionMark.State.ToString()}")</td>
+                        <td>@($"Upper left => X: {selectionMark.BoundingPolygon[0].X}, Y= {selectionMark.BoundingPolygon[0].Y}, Upper right => X: {selectionMark.BoundingPolygon[1].X}, Y= {selectionMark.BoundingPolygon[1].Y}, Lower right => X: {selectionMark.BoundingPolygon[2].X}, Y= {selectionMark.BoundingPolygon[2].Y}, Lower left => X: {selectionMark.BoundingPolygon[3].X}, Y= {selectionMark.BoundingPolygon[3].Y}")</td>
+                    </tr>
+                }
+            }
+            @{
+                No = 1;
+            }
+            @foreach (DocumentStyle style in Result.Styles)
+            {
+                // Check the style and style confidence to see if text is handwritten.
+                // Note that value '0.8' is used as an example.
+
+                bool isHandwritten = style.IsHandwritten.HasValue && style.IsHandwritten == true;
+
+                @if (isHandwritten && style.Confidence > 0.8)
+                {
+
+
+                    foreach (DocumentSpan span in style.Spans)
+                    {
+                        <tr>
+                            <td>@(No++)</td>
+                            <td>Hand Written</td>
+                            <td>
+                                @($"{Result.Content.Substring(span.Offset, span.Length)}")
+                            </td>
+                            <td>-</td>
+                        </tr>
+                    }
+                }
+            }
+            @{
+                No = 1;
+            }
+            @for (int i = 0; i < Result.Tables.Count; i++)
+            {
+                DocumentTable table = Result.Tables[i];
+
+
+                foreach (DocumentTableCell cell in table.Cells)
+                {
+                    <tr>
+                        <td>@(No++)</td>
+                        <td>Table Cell</td>
+                        <td>
+                            @($"Cell ({cell.RowIndex}, {cell.ColumnIndex}) has kind '{cell.Kind}' and content: '{cell.Content}'.")
+                        </td>
+                        <td>-</td>
+                    </tr>
+
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    byte[] SelectedFile;
+    Azure.AI.FormRecognizer.DocumentAnalysis.AnalyzeResult Result;
+    string FileSrc;
+    string CVImageSrc;
+    string localFilePath;
+    string FileType;
+    public async Task TakeFile()
+    {
+
+
+        var result = await FilePicker.Default.PickAsync();
+        if (result != null)
+        {
+            if (result.FileName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase) ||
+                result.FileName.EndsWith("png", StringComparison.OrdinalIgnoreCase) ||
+                result.FileName.EndsWith("bmp", StringComparison.OrdinalIgnoreCase))
+            {
+                FileType = "image";
+            }
+            else if (result.FileName.EndsWith("pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                FileType = "pdf";
+            }
+            // save the file into local storage
+            localFilePath = result.FullPath;
+            localFilePath = localFilePath.Replace("\\", "/");
+            using Stream sourceStream = await result.OpenReadAsync();
+
+            SelectedFile = StreamHelper.StreamToBytes(sourceStream);
+            if (FileType == "pdf")
+                FileSrc = PdfHelper.ConvertToBase64(SelectedFile);
+            else
+                FileSrc = ImageHelper.ConvertToBase64(SelectedFile);
+
+        }
+    }
+
+    async Task Analyze()
+    {
+        Result = await FormApi.RecognizeDocumentFromFile(SelectedFile);
+        var rects = new List<System.Drawing.PointF[]>();
+        var descs = new List<string>();
+        if (FileType == "image")
+        {
+            foreach (DocumentPage page in Result.Pages)
+            {
+                for (int i = 0; i < page.Lines.Count; i++)
+                {
+                    DocumentLine line = page.Lines[i];
+
+                    var poly = new List<System.Drawing.PointF>();
+
+                    for (var x = 0; x < 4; x++)
+                    {
+                        poly.Add(new System.Drawing.PointF((float)line.BoundingPolygon[x].X, (float)line.BoundingPolygon[x].Y));
+                    }
+                    rects.Add(poly.ToArray());
+                    descs.Add(line.Content);
+                }
+
+                for (int i = 0; i < page.SelectionMarks.Count; i++)
+                {
+                    DocumentSelectionMark selectionMark = page.SelectionMarks[i];
+
+                    var poly = new List<System.Drawing.PointF>();
+
+                    for (var x = 0; x < 4; x++)
+                    {
+                        poly.Add(new System.Drawing.PointF((float)selectionMark.BoundingPolygon[x].X, (float)selectionMark.BoundingPolygon[x].Y));
+                    }
+                    rects.Add(poly.ToArray());
+                    descs.Add(selectionMark.State.ToString());
+                }
+            }
+            var imgBytes = ImageHelper.DrawPolygon(rects, descs, SelectedFile, string.Empty);
+            CVImageSrc = ImageHelper.ConvertToBase64(imgBytes);
+        }
+
+    }
+
+}

@@ -1,0 +1,79 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+	<div class="container-fluid">
+		<a class="navbar-brand" href="">AzureAIDemo</a>
+		<button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+	</div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+	<nav class="flex-column">
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+				<span class="oi oi-home" aria-hidden="true"></span> Home
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/face">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Face
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/cv">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo CV
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/ocr">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo OCR
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/chat">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Bot
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/speech">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Speech
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/translate">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Translator
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/form">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Form Reader
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/lang">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Language
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/threejs">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo 3 JS
+			</NavLink>
+		</div>
+		<div class="nav-item px-3">
+			<NavLink class="nav-link" href="/demo/water">
+				<span class="oi oi-gear" aria-hidden="true"></span> Demo Water
+			</NavLink>
+		</div>
+	</nav>
+</div>
+
+@code {
+	private bool collapseNavMenu = true;
+
+	private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+	private void ToggleNavMenu()
+	{
+		collapseNavMenu = !collapseNavMenu;
+	}
+}

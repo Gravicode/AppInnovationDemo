@@ -1,0 +1,147 @@
+﻿@page "/demo/cv"
+@using AzureAIDemo.Helpers
+
+@inject ComputerVisionService CVApi
+<h3>Computer Vision Api Demo</h3>
+
+<p>Select image</p>
+<button class="btn btn-primary" @onclick="TakePhoto">Select File</button>
+<div class="row mt-2">
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(ImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@ImageSrc" alt="image" />
+        }
+    </div>
+    <div class="col-6">
+        @if (!string.IsNullOrEmpty(CVImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@CVImageSrc" alt="image" />
+        }
+    </div>
+</div>
+@if (SelectedImage != null)
+{
+    <div class="row mt-2">
+        <div class="col col-12">
+            <button class="btn btn-success" @onclick="Analyze">Analyze Image</button>
+
+        </div>
+    </div>
+
+}
+
+
+@if (Result != null)
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Object</th>
+                <th>Desc</th>
+                <th>Position</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var No = 1;
+            }
+            @foreach (var item in Result.Faces)
+            {
+
+                <tr>
+                    <td>@(No++)</td>
+                    <td>Face</td>
+                    <td>@($"{item.Gender} - {item.Age} year")</td>
+                    <td>@($"{item.FaceRectangle.Left},{item.FaceRectangle.Top},{item.FaceRectangle.Width},{item.FaceRectangle.Height}")</td>
+                </tr>
+            }
+            @{
+                No = 1;
+            }
+            @foreach (var item in Result.Objects)
+            {
+                <tr>
+                    <td>@(No++)</td>
+                    <td>Face</td>
+                    <td>@($"{item.ObjectProperty} - {item.Confidence}")</td>
+                    <td>@($"{item.Rectangle.X},{item.Rectangle.Y},{item.Rectangle.W},{item.Rectangle.H}")</td>
+                </tr>
+            }
+
+        </tbody>
+    </table>
+}
+
+@code {
+    byte[] SelectedImage;
+    Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models.ImageAnalysis Result;
+    string ImageSrc;
+    string CVImageSrc;
+    public async Task TakePhoto()
+    {
+
+        var status = await Permissions.RequestAsync<Permissions.Media>();
+        if (status == PermissionStatus.Granted)
+            if (MediaPicker.Default.IsCaptureSupported)
+            {
+                FileResult photo = await MediaPicker.Default.PickPhotoAsync();
+
+                if (photo != null)
+                {
+                    // save the file into local storage
+                    string localFilePath = Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+
+                    using Stream sourceStream = await photo.OpenReadAsync();
+
+                    SelectedImage = StreamHelper.StreamToBytes(sourceStream);
+
+                    ImageSrc = ImageHelper.ConvertToBase64(SelectedImage);
+                }
+            }
+
+
+
+    }
+
+    async Task Analyze()
+    {
+        Result = await CVApi.AnalyzeImageBytes(SelectedImage);
+        var rects = new List<System.Drawing.Rectangle>();
+        var descs = new List<string>();
+        foreach (var item in Result.Faces)
+        {
+            rects.Add(new System.Drawing.Rectangle() { X = item.FaceRectangle.Left, Y = item.FaceRectangle.Top, Width = item.FaceRectangle.Width, Height = item.FaceRectangle.Height });
+            descs.Add($"{item.Gender} - {item.Age} year");
+        }
+        foreach (var item in Result.Objects)
+        {
+            rects.Add(new System.Drawing.Rectangle() { X = item.Rectangle.X, Y = item.Rectangle.Y, Width = item.Rectangle.W, Height = item.Rectangle.H });
+            descs.Add($"{item.ObjectProperty} - {item.Confidence}");
+        }
+        var remark = Result.Description != null ? string.Join(",", Result.Description.Captions.Select(x => x.Text).ToArray()) : "";
+        var imgBytes = ImageHelper.DrawBoxes(rects, descs, SelectedImage, remark);
+        /*
+        var img = PlatformImage.FromStream(ImgStream,ImageFormat.Png);
+
+        //var img = SkiaImage.FromStream(ImgStream, ImageFormat.Jpeg);
+        SkiaBitmapExportContext bmp = new SkiaBitmapExportContext((int)img.Width, (int)img.Height, 1.0f);
+        ICanvas canvas = bmp.Canvas;
+        canvas.DrawImage(img, 0, 0, img.Width, img.Height);
+
+        canvas.StrokeColor = Colors.ForestGreen.WithAlpha(.5f);
+        canvas.StrokeSize = 2;
+
+        foreach (var face in result.Faces)
+        {
+
+            canvas.DrawRectangle(face.FaceRectangle.Left, face.FaceRectangle.Top, face.FaceRectangle.Width, face.FaceRectangle.Height);
+        }
+        var mem = new MemoryStream();
+        bmp.WriteToStream(mem);
+        */
+        CVImageSrc = ImageHelper.ConvertToBase64(imgBytes);
+    }
+
+}

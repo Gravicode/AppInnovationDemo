@@ -1,0 +1,98 @@
+﻿@page "/demo/face"
+@using AzureAIDemo.Helpers
+@using Microsoft.Maui.Graphics.Skia
+@inject FaceServices faceApi
+<h3>Face Api Demo</h3>
+
+<p>Select image</p>
+<button class="btn btn-primary" @onclick="TakePhoto">Select File</button>
+<div class="row mt-2">
+    <div class="col col-6">
+        @if (!string.IsNullOrEmpty(ImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@ImageSrc" alt="image" />
+        }
+    </div>
+    <div class="col col-6">
+        @if (!string.IsNullOrEmpty(FaceImageSrc))
+        {
+            <img style="max-width: 90%;height: auto;" src="@FaceImageSrc" alt="image" />
+        }
+    </div>
+</div>
+@if (SelectedImage != null)
+{
+    <div class="row mt-2">
+        <div class="col col-12">
+            <button class="btn btn-succcess" @onclick="DetectFace">Detect Face</button>
+
+        </div>
+    </div>
+
+}
+
+@code {
+    byte[] SelectedImage;
+
+    string ImageSrc;
+    string FaceImageSrc;
+    public async Task TakePhoto()
+    {
+
+        var status = await Permissions.RequestAsync<Permissions.Camera>();
+        if (status == PermissionStatus.Granted)
+            if (MediaPicker.Default.IsCaptureSupported)
+            {
+                FileResult photo = await MediaPicker.Default.PickPhotoAsync();
+
+                if (photo != null)
+                {
+                    // save the file into local storage
+                    string localFilePath = Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+
+                    using Stream sourceStream = await photo.OpenReadAsync();
+
+                    SelectedImage = StreamHelper.StreamToBytes(sourceStream);
+
+                    ImageSrc = ImageHelper.ConvertToBase64(SelectedImage);
+                }
+            }
+
+
+
+    }
+
+    async Task DetectFace()
+    {
+        var faces = await faceApi.DetectFaceFromBytes(SelectedImage);
+
+        var rects = new List<System.Drawing.Rectangle>();
+        var descs = new List<string>();
+        foreach(var item in faces)
+        {
+            rects.Add(new System.Drawing.Rectangle() { X = item.FaceRectangle.Left, Y = item.FaceRectangle.Top, Width = item.FaceRectangle.Width, Height = item.FaceRectangle.Height });
+            descs.Add($"{item.FaceAttributes.Gender} - {item.FaceAttributes.Age} year - {item.FaceAttributes.Emotion} ");            
+        }    
+        var remark = $"{faces.Count} faces detected";
+        var imgBytes = ImageHelper.DrawBoxes(rects,descs,SelectedImage,remark);
+        
+        FaceImageSrc = ImageHelper.ConvertToBase64(imgBytes);
+        //var ImgStream = new MemoryStream(SelectedImage);
+        //var img = SkiaImage.FromStream(ImgStream, ImageFormat.Jpeg);
+        //SkiaBitmapExportContext bmp = new SkiaBitmapExportContext((int)img.Width, (int)img.Height, 1f);
+        //ICanvas canvas = bmp.Canvas;
+        //canvas.DrawImage(img.ToPlatformImage(), 0, 0, img.Width, img.Height);
+
+        //canvas.StrokeColor = Colors.ForestGreen.WithAlpha(.5f);
+        //canvas.StrokeSize = 2;
+
+        //foreach (var face in faces)
+        //{
+
+        //    canvas.DrawRectangle(face.FaceRectangle.Left, face.FaceRectangle.Top, face.FaceRectangle.Width, face.FaceRectangle.Height);
+        //}
+        //bmp.WriteToStream(ImgStream);
+        //FaceImageSrc = ImageHelper.ConvertToBase64(ImgStream.ToArray());
+    }
+
+}

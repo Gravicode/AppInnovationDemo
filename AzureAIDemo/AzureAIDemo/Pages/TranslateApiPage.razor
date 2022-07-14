@@ -1,0 +1,68 @@
+﻿@page "/demo/translate"
+@using AzureAIDemo.Helpers
+@using System.Globalization
+@inject TranslateService translateApi
+<h3>Translate Api Demo</h3>
+
+<button class="btn btn-primary mb-1" @onclick="Translate">Translate</button>
+
+<div class="form-group">
+    <label for="cmblang">Target Bahasa</label>
+    <select class="form-control d-flex" id="cmblang" @bind="To">
+        <option value="-">Pilih</option>
+        @if (LangList != null)
+        {
+            foreach (var lang in LangList)
+            {
+                <option value="@lang.code">@lang.name</option>
+            }
+        }
+    </select>
+</div>
+
+<div class="row mt-2">
+    <div class="col col-6">
+        Input
+    </div>
+    <div class="col col-6">
+        Result
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col col-6">
+        
+        <textarea @bind="Message" style="width:90%;height:90%"></textarea>
+    </div>
+    <div class="col col-6">
+       
+        <textarea @bind="Result" style="width:90%;height:90%"></textarea>
+    </div>
+</div>
+
+@code {
+    string To;
+    string Message = "I am addicted to code, like a second wife";
+    string Result;
+    List<(string name, string code)> LangList;
+    async Task Translate()
+    {
+        if (string.IsNullOrEmpty(Message)) return;
+
+        var res = await translateApi.TranslateTextAsync(Message, To);
+        Result = res;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        PopulateLang();
+    }
+    void PopulateLang()
+    {
+        CultureInfo[] cinfo = CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures);
+
+        LangList = new();
+        foreach (CultureInfo cul in cinfo)
+        {
+            LangList.Add((cul.DisplayName, cul.Name.Substring(0, 2)));
+        }
+    }
+}

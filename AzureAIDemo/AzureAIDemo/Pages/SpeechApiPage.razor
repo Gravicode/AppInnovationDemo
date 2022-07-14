@@ -1,0 +1,50 @@
+﻿@page "/demo/speech"
+@inject SpeechService SpeechApi
+@inject TextToSpeechService SpeakApi
+
+
+<h3>Speech to Text</h3>
+
+<p>Push to Talk</p>
+<button class="btn btn-primary" @onclick="Transcribe">@BtnTranscribe</button>
+<div class="row mt-2">
+    <div class="col col-12">
+        <textarea @bind="TxtTranscribe" rows="5" cols="25" ></textarea>
+    </div>
+</div>
+<button class="btn btn-primary" @onclick="Speak">Speak</button>
+@code {
+    string BtnTranscribe = "Start";
+    string TxtTranscribe;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SpeechApi.Recognized += async(a,b) =>
+        {
+            TxtTranscribe += b.Text;
+            await InvokeAsync(() => StateHasChanged());
+        }; 
+        SpeechApi.StateChanged += async(a,b) =>
+        {
+            if (b.State == TranscribeMode.Start)
+            {
+                BtnTranscribe = "Stop";
+            }
+            else
+            {
+                BtnTranscribe = "Start";
+            }
+             await InvokeAsync(() => StateHasChanged());
+        };
+    }
+
+    async Task Transcribe()
+    {
+        await SpeechApi.StartTranscribe();
+    }
+    
+    async Task Speak()
+    {
+        SpeakApi.Speak(TxtTranscribe);
+    }
+}
