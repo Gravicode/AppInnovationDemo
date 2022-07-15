@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codex Babylon</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    <link rel="stylesheet" href="style.css">
+  
+</head>
+<body>
+
+    <canvas id="renderCanvas"
+            touch-action="none"
+            style="width:100%; height:100%"></canvas>
+    <div class="commandDiv">
+        <input type="text" class="nlInput" id="txtinput" />
+        <button class="submitButton" id="btnsubmit">Submit</button>
+        <button class="resetButton" id="btnreset">Reset</button>
+        <div className="codeDiv">
+            <p ref={codeDivRef}></p>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        //var state = {};
+        var serverUrl = '';
+        var _canvas = document.getElementById("renderCanvas"); 
+        var _engine = new window.BABYLON.Engine(_canvas, true); 
+        var scene = createScene(_engine, _canvas);
+        var codeDivRef = "";
+        var state = {};
+        $(document).ready(function () {
+
+            $("#btnreset").click(function () {
+                // action goes here!!
+                reset();
+            });
+           
+            $("#btnsubmit").click(function () {
+                // action goes here!!
+                submit();
+            });
+
+            $('#txtinput').keyup(function (e) {
+                if (e.keyCode == 13) {
+                    submit();
+                }
+            });
+
+            useEffect();
+        });
+
+        function reset() {
+            scene?.dispose();
+            scene = createScene(_engine, _canvas);
+
+            $('#codeDiv').html('<p></p>');
+            codeDivRef = "";
+            console.log("resetting context");
+
+            $.getJSON(serverUrl + "/reset",
+                function () {
+                    console.log("success");
+                })
+                .done(function (data) {
+                    console.log(`Reset context: ${data.context}`);
+                    console.log("second success");
+                    state = {};
+                })
+                .fail(function (error) {
+                    console.log(error)
+                })
+                .always(function () {
+                    console.log("complete");
+                });
+               
+        }
+
+        var evalAsync = async function (code) {
+            await eval("(async () => { " + code + "})()");
+        };
+
+       
+
+        function createScene(engine, canvas) {
+            if (engine == null || canvas == null) {
+                return null;
+            }
+
+            const scene = new window.BABYLON.Scene(engine);
+            scene.clearColor = new window.BABYLON.Color4.FromHexString("#201c24");
+            const camera = new window.BABYLON.ArcRotateCamera(
+                "camera",
+                -Math.PI / 2,
+                Math.PI / 2.5,
+                15,
+                new window.BABYLON.Vector3(0, 0, 0)
+            );
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 5;
+
+            const light = new window.BABYLON.HemisphericLight(
+                "light",
+                new window.BABYLON.Vector3(1, 1, 0)
+            );
+
+            return scene;
+        }
+
+    
+
+        var useEffect = () => {
+            _engine.runRenderLoop(function () {
+                scene?.render();
+            });
+
+            function handleWindowResize() {
+                _engine.resize();
+            }
+
+            // Watch for browser/canvas resize events
+            window.addEventListener("resize", handleWindowResize);
+            return () => {
+                window.removeEventListener("resize", handleWindowResize);
+            };
+        }
+        $.postJSON = function (url, data, callback) {
+            return jQuery.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                'type': 'POST',
+                'url': url,
+                'data': data,
+                'dataType': 'json',
+                'success': callback,
+                'error': function (error) {
+                    console.log(error);
+                }
+            });
+        };
+        function submit() {
+
+
+            var nlCommand = $("#txtinput").val();
+            console.log("Sending natural language command: " + nlCommand);
+            var param = JSON.stringify({ text: nlCommand });
+            var posting = $.postJSON("/codegen", param, function (data) {
+                console.log(`Received the following code: ${data.code}`);
+                console.log(`Received the following sensitiveContentFlag: ${data.sensitiveContentFlag}`);
+
+                if (data.sensitiveContentFlag > 0) {
+                    var warning = data.sensitiveContentFlag === 1
+                        ? "Your message or the model's response may have contained sensitive content."
+                        : "Your message or the model's response may have contained unsafe content.";
+
+                    $("#txtinput").val("");
+                    console.warn(warning);
+
+                    if (codeDivRef != null) {
+                        codeDivRef = "Potentially sensitive language detected in prompt or completion. Try another prompt using different language.";
+                    }
+                } else if (data.error && codeDivRef != null) {
+                    codeDivRef = data.error;
+                } else {
+                    if (codeDivRef != null ) {
+                        codeDivRef = data.code;
+                        $("#txtinput").val("");
+                        evalAsync(data.code);
+                    }
+                }
+
+                $('#codeDiv').html('<p>' + codeDivRef + '</p>');
+            }
+            );
+            /*
+            var posting = $.post("/codegen", JSON.stringify({
+                text: nlCommand
+            }), function () { },'json');
+            
+            posting.done(function (data) {
+                console.log(`Received the following code: ${data.code}`);
+                console.log(`Received the following sensitiveContentFlag: ${data.sensitiveContentFlag}`);
+
+                if (data.sensitiveContentFlag > 0) {
+                    var warning = data.sensitiveContentFlag === 1
+                        ? "Your message or the model's response may have contained sensitive content."
+                        : "Your message or the model's response may have contained unsafe content.";
+
+                    $("#txtinput").val("");
+                    console.warn(warning);
+
+                    if (codeDivRef != null) {
+                        codeDivRef = "Potentially sensitive language detected in prompt or completion. Try another prompt using different language.";
+                    }
+                } else if (data.error && codeDivRef != null) {
+                    codeDivRef = data.error;
+                } else {
+                    if (codeDivRef != null && currentCommand !== undefined) {
+                        codeDivRef = data.code;
+                        $("#txtinput").val("");
+                        evalAsync(data.code);
+                    }
+                }
+
+                $('#codeDiv').html('<p>' + codeDivRef + '</p>');
+                })
+                .fail(function (error) {
+                    console.log(error);
+                })
+                .always(function () {
+                    alert("finished");
+                });
+
+*/
+           
+
+        }
+
+
+
+    </script>
+</body>
+</html>

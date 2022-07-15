@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAIBot", "AzureAIBot\Az
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blazor.BabylonJS.WASM", "Blazor.BabylonJS.WASM\Blazor.BabylonJS.WASM.csproj", "{D9934834-4530-499F-8AD5-CB3C5499763E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Codex", "Codex", "{C9F214DA-EC5D-4E5E-AD8B-40816A0BDD9F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "blazor.codex", "blazor.codex\blazor.codex.csproj", "{664ACAE9-3103-4EA8-9D99-1352E88FE9CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,10 @@ Global
 		{D9934834-4530-499F-8AD5-CB3C5499763E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D9934834-4530-499F-8AD5-CB3C5499763E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9934834-4530-499F-8AD5-CB3C5499763E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{664ACAE9-3103-4EA8-9D99-1352E88FE9CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{664ACAE9-3103-4EA8-9D99-1352E88FE9CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{664ACAE9-3103-4EA8-9D99-1352E88FE9CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{664ACAE9-3103-4EA8-9D99-1352E88FE9CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -43,6 +51,7 @@ Global
 		{F8DDA6F0-1CDD-45AD-A30C-1ED98CBC617D} = {5F44725E-DFF3-425D-80A8-B41BF9EDBA0E}
 		{DB61B3C6-863E-425F-AB5D-0BB43C709FC1} = {5E2C320E-BF5D-4CCB-89B3-4A088607F036}
 		{D9934834-4530-499F-8AD5-CB3C5499763E} = {4D6123D7-AA4F-4FBA-BE5F-E3E922E0B891}
+		{664ACAE9-3103-4EA8-9D99-1352E88FE9CB} = {C9F214DA-EC5D-4E5E-AD8B-40816A0BDD9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {42D3B85F-B319-4C02-8E7B-09E283CBC3B2}
